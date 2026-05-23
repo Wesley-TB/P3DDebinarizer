@@ -9,6 +9,9 @@ release/
 # Signing scripts / certificates
 tools/
 
+# Local build script
+build.bat
+
 # IDE
 .vs/
 .vscode/
