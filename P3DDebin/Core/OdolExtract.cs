@@ -66,12 +66,12 @@ public static class OdolExtract
                     {
                         obfuscatedCount++;
                         outputName = $"obfuscated_material_{obfuscatedCount:D3}.rvmat";
-                        log($"  rvmat (nome obfuscado, renomeado): {EscapeForLog(name)} -> {outputName}");
+                        log(Strings.T("Core.LogRvmatObfuscated", EscapeForLog(name), outputName));
                     }
                     else
                     {
                         outputName = RelativeSafePath(name, ".rvmat");
-                        log($"  rvmat: {name}");
+                        log(Strings.T("Core.LogRvmat", name));
                     }
 
                     items.Add(new TextItem(outputName, content));
@@ -84,7 +84,7 @@ public static class OdolExtract
         }
 
         if (obfuscatedCount > 0)
-            log($"  aviso: {obfuscatedCount} RVMAT(s) tinham nome obfuscado e foram renomeados; o conteudo dos arquivos esta intacto.");
+            log(Strings.T("Core.LogRvmatsWarning", obfuscatedCount));
 
         return items;
     }
@@ -137,7 +137,7 @@ public static class OdolExtract
         string modelName = Path.GetFileNameWithoutExtension(inputPath);
         string[] lines = BuildModelCfg(odol, modelName, log);
 
-        log($"  model.cfg: {lines.Length} linha(s)");
+        log(Strings.T("Core.LogModelCfgLines", lines.Length));
         return new TextItem(modelName + ".cfg", string.Join(Environment.NewLine, lines));
     }
 
@@ -167,7 +167,7 @@ public static class OdolExtract
 
         List<string> sections = CollectSections(odol);
 
-        log($"  esqueleto: \"{skelName}\", {bones.Length / 2} osso(s), {sections.Count} secao(oes)");
+        log(Strings.T("Core.LogSkeleton", skelName, bones.Length / 2, sections.Count));
 
         var o = new List<string>
         {
@@ -327,7 +327,7 @@ public static class OdolExtract
 
         lines.Add("\t\t};");
 
-        log($"  animacoes: {animCount} classe(s) reconstruida(s)");
+        log(Strings.T("Core.LogAnimationsRebuilt", animCount));
         return lines;
     }
 
@@ -572,7 +572,7 @@ public static class OdolExtract
 
     private static object LoadOrThrow(string inputPath, Action<string> log)
         => Converter.LoadOdol(inputPath, log)
-           ?? throw new InvalidOperationException("Nao foi possivel carregar o ODOL (arquivo protegido ou versao nao suportada).");
+           ?? throw new InvalidOperationException(Strings.T("Core.ExCannotLoadOdol"));
 
     // Converte um caminho interno do Arma ("mod\data\x.rvmat") em caminho
     // relativo seguro, removendo drive: e barras iniciais.

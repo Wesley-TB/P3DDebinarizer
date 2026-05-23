@@ -95,7 +95,7 @@ public static class Converter
         void Log(string msg) => log?.Invoke(msg);
 
         uint version = ReadVersion(inputPath);
-        Log($"  ODOL v{version}  |  BisDll v{_bis.GetName().Version}");
+        Log(Strings.T("Core.LogOdolVersion", version, _bis.GetName().Version!));
         return TryLoadOdolWithPatches(inputPath, version, Log);
     }
 
@@ -108,33 +108,33 @@ public static class Converter
         try
         {
             uint version = ReadVersion(inputPath);
-            Log($"  ODOL v{version}  |  BisDll v{_bis.GetName().Version}");
+            Log(Strings.T("Core.LogOdolVersion", version, _bis.GetName().Version!));
 
             object? odol = TryLoadOdolWithPatches(inputPath, version, Log);
 
             if (odol == null && LooksProtectedOdol(inputPath))
-                Log("  P3D protegido/obfuscado detectado; tentando abrir o arquivo real, sem substituir por referencia.");
+                Log(Strings.T("Core.LogProtectedOdol"));
 
             if (odol == null)
             {
                 if (LooksProtectedOdol(inputPath))
-                    return Fail(inputPath, outputPath, $"P3D ODOL v{version} protegido/obfuscado. Ainda nao foi possivel decodificar o arquivo real.");
+                    return Fail(inputPath, outputPath, Strings.T("Core.ResultProtectedOdol", version));
 
-                return Fail(inputPath, outputPath, $"Nao foi possivel carregar ODOL v{version}.");
+                return Fail(inputPath, outputPath, Strings.T("Core.ResultCannotLoadOdol", version));
             }
 
-            Log("  Convertendo ODOL -> MLOD...");
+            Log(Strings.T("Core.LogConvertingOdol"));
             object? mlod = _odol2mlod.Invoke(null, new[] { odol });
             if (mlod == null)
-                return Fail(inputPath, outputPath, "ODOL2MLOD retornou null.");
+                return Fail(inputPath, outputPath, Strings.T("Core.ResultOdol2MlodNull"));
 
             _writeToFile.Invoke(mlod, new object[] { outputPath, true });
 
-            return Ok(inputPath, outputPath, $"OK - ODOL v{version} convertido com sucesso.");
+            return Ok(inputPath, outputPath, Strings.T("Core.ResultOdolOk", version));
         }
         catch (Exception ex)
         {
-            return Fail(inputPath, outputPath, $"Erro: {Unwrap(ex)}");
+            return Fail(inputPath, outputPath, Strings.T("Core.ResultError", Unwrap(ex)));
         }
     }
 
@@ -146,7 +146,7 @@ public static class Converter
         }
         catch (Exception ex)
         {
-            log($"  Load direto falhou: {Unwrap(ex)}");
+            log(Strings.T("Core.LogLoadDirectFailed", Unwrap(ex)));
             return null;
         }
     }
@@ -159,7 +159,7 @@ public static class Converter
         }
         catch (Exception ex)
         {
-            log($"  Load via stream falhou: {Unwrap(ex)}");
+            log(Strings.T("Core.LogLoadStreamFailed", Unwrap(ex)));
             return null;
         }
     }
@@ -170,7 +170,7 @@ public static class Converter
 
         if (odol == null && version >= 74)
         {
-            log("  Tentando corrigir ordem do header v74/v75...");
+            log(Strings.T("Core.LogTryFixHeader"));
             using var reordered = ReorderV75Header(path, log);
             if (reordered != null)
                 odol = TryLoadStream(reordered, log);
@@ -178,7 +178,7 @@ public static class Converter
 
         if (odol == null && version >= 75)
         {
-            log("  Aplicando patch de header v75...");
+            log(Strings.T("Core.LogApplyHeaderPatch"));
             using var patched = PatchV75(path, log);
             if (patched != null)
                 odol = TryLoadStream(patched, log);
@@ -227,7 +227,7 @@ public static class Converter
             12 + stringLen + 8,
             orig.Length - (stringEnd + 1));
 
-        log($"  Header reordenado: muzzleFlash antes dos extras ({extraA:X8},{extraB:X8}).");
+        log(Strings.T("Core.LogHeaderReordered", $"{extraA:X8}", $"{extraB:X8}"));
         return new MemoryStream(patched, writable: false);
     }
 
@@ -241,7 +241,7 @@ public static class Converter
         uint unkB = BitConverter.ToUInt32(orig, 12);
         if (unkA != 0 || unkB != 0)
         {
-            log($"  Patch ignorado: campos extras inesperados ({unkA:X8},{unkB:X8})");
+            log(Strings.T("Core.LogPatchSkipped", $"{unkA:X8}", $"{unkB:X8}"));
             return null;
         }
 
@@ -258,7 +258,7 @@ public static class Converter
                 var obj = _odolCtorStream.Invoke(new object[] { testStream });
                 if (obj != null)
                 {
-                    log($"  Patch v75 -> v{targetVersion} OK");
+                    log(Strings.T("Core.LogPatchOk", targetVersion));
                     return new MemoryStream(patched, writable: false);
                 }
             }
@@ -268,7 +268,7 @@ public static class Converter
             }
         }
 
-        log("  Nenhum patch de versao funcionou.");
+        log(Strings.T("Core.LogNoPatchWorked"));
         return null;
     }
 
@@ -346,7 +346,7 @@ public static class Converter
         if (safeBase != baseName)
         {
             safeBase = $"{safeBase}_{StableHash(baseName):X8}";
-            log($"  Nome de saida normalizado para Object Builder: {safeBase}_debin.p3d");
+            log(Strings.T("Core.LogSafeOutputName", safeBase));
         }
 
         return Path.Combine(outputFolder, safeBase + "_debin.p3d");

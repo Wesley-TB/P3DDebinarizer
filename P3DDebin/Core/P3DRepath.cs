@@ -51,15 +51,13 @@ public static class P3DRepath
         if (format == P3DFormat.Odol)
         {
             if (!Converter.TryReadOdolAddresses(srcPath, out start, out end))
-                throw new InvalidOperationException(
-                    "Nao foi possivel ler a estrutura do ODOL (formato protegido ou incomum).");
+                throw new InvalidOperationException(Strings.T("Core.ExOdolStructure"));
 
             scanStart   = (int)start.Where(s => s > 0).Min();
             tableOffset = FindAddressTable(data, start, end);
 
             if (tableOffset < 0)
-                throw new InvalidOperationException(
-                    "Tabela de offsets do ODOL nao localizada; troca de caminhos abortada.");
+                throw new InvalidOperationException(Strings.T("Core.ExOdolAddressTable"));
         }
 
         // Localiza todos os pontos de troca no arquivo original.
@@ -79,9 +77,9 @@ public static class P3DRepath
             }
 
             if (count == 0)
-                log?.Invoke($"  aviso: caminho nao encontrado no arquivo: {from}");
+                log?.Invoke(Strings.T("Core.LogPathNotFound", from));
             else
-                log?.Invoke($"  {from}  ->  {to}   ({count}x)");
+                log?.Invoke(Strings.T("Core.LogPathReplaced", from, to, count));
         }
 
         sites.Sort((a, b) => a.Offset.CompareTo(b.Offset));
@@ -119,7 +117,7 @@ public static class P3DRepath
                 return (int)real.Min();
         }
 
-        log?.Invoke("  aviso: estrutura do ODOL nao lida; varrendo o arquivo inteiro.");
+        log?.Invoke(Strings.T("Core.LogOdolStructNotRead"));
         return 0;
     }
 
@@ -198,8 +196,7 @@ public static class P3DRepath
         for (int i = 1; i < sites.Count; i++)
         {
             if (sites[i].Offset < sites[i - 1].End)
-                throw new InvalidOperationException(
-                    "Trocas de caminho sobrepostas; revise as alteracoes.");
+                throw new InvalidOperationException(Strings.T("Core.ExOverlappingChanges"));
         }
     }
 
