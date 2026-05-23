@@ -1,0 +1,20 @@
+# Build artifacts
+**/bin/
+**/obj/
+release/
+
+# Proprietary Bohemia binary — not redistributable
+**/BisDll.dll
+
+# Signing scripts / certificates
+tools/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store
