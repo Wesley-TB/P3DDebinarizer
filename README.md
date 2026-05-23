@@ -32,11 +32,20 @@ Built on .NET 8 + WinForms, distributed as a single self-contained `.exe`.
 
 ## Download & install
 
-1. Grab the latest **`P3DDebin.exe`** from the [Releases](https://github.com/Wesley-TB/P3DDebinarizer/releases) page.
-2. Put it anywhere — Desktop, a tools folder, wherever.
-3. Double-click. **No .NET install required**: the runtime is bundled inside the `.exe`.
+The [Releases](https://github.com/Wesley-TB/P3DDebinarizer/releases) page offers two flavors of the same app — pick the one that fits you:
 
-> First launch is a bit slower because the single-file exe extracts itself to `%TEMP%\.net\P3DDebin\…`. Subsequent launches reuse the cache and start instantly.
+| Asset | Size | Requires |
+|---|---|---|
+| **`P3DDebin.exe`** | ~420 KB | [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) installed |
+| **`P3DDebin-portable.exe`** | ~70 MB | nothing — runtime is bundled |
+
+Most users want **`P3DDebin.exe`**: if .NET 8 isn't installed yet, Windows will offer a one-click install on first launch. Grab **`P3DDebin-portable.exe`** when you can't install runtimes (USB stick, locked-down machine, throwaway VM, etc.).
+
+1. Download the chosen `.exe`.
+2. Put it anywhere — Desktop, a tools folder, wherever.
+3. Double-click.
+
+> The portable build extracts itself once to `%TEMP%\.net\P3DDebin\…` on first launch, so it's slightly slower the first time. Subsequent launches are fast.
 
 If Windows SmartScreen warns about an unknown publisher, click **More info → Run anyway** (the build is not code-signed).
 

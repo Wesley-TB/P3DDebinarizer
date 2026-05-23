@@ -15,11 +15,17 @@ public static class Converter
 
     static Converter()
     {
-        string dllPath = Path.Combine(
-            Path.GetDirectoryName(typeof(Converter).Assembly.Location)!,
-            "BisDll.dll");
+        // Em single-file publish o Assembly.Location e vazio; usamos
+        // AppContext.BaseDirectory como pasta da aplicacao. Quando o BisDll esta
+        // bundled (build self-contained com IncludeAllContentForSelfExtract),
+        // ele e resolvido pelo loader padrao via Assembly.Load.
+        string baseDir = AppContext.BaseDirectory;
+        string dllPath = Path.Combine(baseDir, "BisDll.dll");
 
-        _bis = Assembly.LoadFrom(dllPath);
+        if (File.Exists(dllPath))
+            _bis = Assembly.LoadFrom(dllPath);
+        else
+            _bis = Assembly.Load("BisDll");
 
         var odolType = _bis.GetType("BisDll.Model.ODOL.ODOL")
                        ?? throw new InvalidOperationException("BisDll.Model.ODOL.ODOL not found");
