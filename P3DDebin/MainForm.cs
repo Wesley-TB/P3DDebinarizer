@@ -37,6 +37,8 @@ public class MainForm : Form
     private P3DFormat _format = P3DFormat.Unknown;
     private bool      _batchMode;
 
+    private readonly Prefs _prefs = Prefs.Load();
+
     // -------------------------------------------------------------------------
     // Constantes de cor
     // -------------------------------------------------------------------------
@@ -51,6 +53,72 @@ public class MainForm : Form
     public MainForm()
     {
         BuildUI();
+        ApplyPrefs();
+        FormClosing += (_, _) => CapturePrefs();
+    }
+
+    // -------------------------------------------------------------------------
+    // Preferencias persistentes
+    // -------------------------------------------------------------------------
+    private void ApplyPrefs()
+    {
+        // Restaura ultima pasta de input/output, se ainda existem.
+        // Output primeiro: SetInput so preenche output se estiver vazio.
+        if (!string.IsNullOrWhiteSpace(_prefs.LastOutput) && Directory.Exists(_prefs.LastOutput))
+            _txtOutput.Text = _prefs.LastOutput;
+
+        if (!string.IsNullOrWhiteSpace(_prefs.LastInput) && PathStillUsable(_prefs.LastInput))
+            SetInput(_prefs.LastInput);
+
+        // Restaura geometria da janela, validando que ainda cabe na area visivel.
+        if (_prefs.WindowWidth > 200 && _prefs.WindowHeight > 200)
+        {
+            var bounds = new Rectangle(
+                _prefs.WindowX, _prefs.WindowY, _prefs.WindowWidth, _prefs.WindowHeight);
+            if (IsBoundsVisible(bounds))
+            {
+                StartPosition = FormStartPosition.Manual;
+                Bounds        = bounds;
+            }
+        }
+
+        if (_prefs.WindowMaximized)
+            WindowState = FormWindowState.Maximized;
+    }
+
+    private void CapturePrefs()
+    {
+        _prefs.LastInput  = _txtInput.Text.Trim();
+        _prefs.LastOutput = _txtOutput.Text.Trim();
+
+        if (WindowState == FormWindowState.Normal)
+        {
+            _prefs.WindowX      = Bounds.X;
+            _prefs.WindowY      = Bounds.Y;
+            _prefs.WindowWidth  = Bounds.Width;
+            _prefs.WindowHeight = Bounds.Height;
+        }
+        else
+        {
+            _prefs.WindowX      = RestoreBounds.X;
+            _prefs.WindowY      = RestoreBounds.Y;
+            _prefs.WindowWidth  = RestoreBounds.Width;
+            _prefs.WindowHeight = RestoreBounds.Height;
+        }
+        _prefs.WindowMaximized = WindowState == FormWindowState.Maximized;
+
+        _prefs.Save();
+    }
+
+    private static bool PathStillUsable(string path)
+        => File.Exists(path) || Directory.Exists(path);
+
+    private static bool IsBoundsVisible(Rectangle bounds)
+    {
+        foreach (Screen s in Screen.AllScreens)
+            if (s.WorkingArea.IntersectsWith(bounds))
+                return true;
+        return false;
     }
 
     // -------------------------------------------------------------------------
@@ -546,12 +614,33 @@ public class MainForm : Form
         }
 
         using var dlg = new ChangePathsForm(loaded);
+        if (_prefs.RecentRules.Length > 0)
+        {
+            var preload = new List<RepathRules.Rule>(_prefs.RecentRules.Length);
+            foreach (var r in _prefs.RecentRules)
+                preload.Add(new RepathRules.Rule(r.From, r.To, r.Regex));
+            dlg.PreloadRules(preload);
+        }
+
         if (dlg.ShowDialog(this) != DialogResult.OK)
         {
             Log(Strings.T("Main.LogChangePathsCancelled"));
             _lblStatus.Text = Strings.T("Main.StatusCancelled");
             SetBusy(false);
             return;
+        }
+
+        // Persiste as regras aplicadas como "recentes" para a proxima sessao.
+        if (dlg.AppliedPrefixRules.Count > 0)
+        {
+            var arr = new Prefs.PrefRule[dlg.AppliedPrefixRules.Count];
+            for (int i = 0; i < arr.Length; i++)
+            {
+                var r = dlg.AppliedPrefixRules[i];
+                arr[i] = new Prefs.PrefRule { From = r.From, To = r.To, Regex = r.IsRegex };
+            }
+            _prefs.RecentRules = arr;
+            _prefs.Save();
         }
 
         var replacements = dlg.Replacements;

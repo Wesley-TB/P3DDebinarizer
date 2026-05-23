@@ -34,20 +34,32 @@ public class ChangePathsForm : Form
     private readonly Dictionary<string, string> _edits =
         new(StringComparer.Ordinal);
 
-    // Regras de prefixo aplicadas (para export/import reutilizavel).
-    private readonly List<(string From, string To)> _prefixRules = new();
+    // Regras aplicadas (para export/import reutilizavel).
+    private readonly List<RepathRules.Rule> _prefixRules = new();
 
     private CheckedListBox _filesList = null!;
     private DataGridView   _grid      = null!;
     private TextBox        _txtFrom   = null!;
     private TextBox        _txtTo     = null!;
+    private CheckBox       _chkRegex  = null!;
     private Label          _lblStatus = null!;
     private Label          _lblPaths  = null!;
     private bool           _suspend;
 
     // Resultados expostos para o MainForm:
-    public List<(string From, string To)> Replacements { get; } = new();
-    public List<string>                   SelectedFiles { get; } = new();
+    public List<(string From, string To)> Replacements      { get; } = new();
+    public List<string>                   SelectedFiles     { get; } = new();
+    public IReadOnlyList<RepathRules.Rule> AppliedPrefixRules => _prefixRules;
+
+    // Regras pre-carregadas (vindas de uma sessao anterior, populadas via setter).
+    public void PreloadRules(IEnumerable<RepathRules.Rule> rules)
+    {
+        foreach (RepathRules.Rule rule in rules)
+        {
+            ApplyPrefixRule(rule);
+            _prefixRules.Add(rule);
+        }
+    }
 
     public ChangePathsForm(IEnumerable<(string FilePath, IReadOnlyList<string> Paths)> files)
     {
@@ -169,9 +181,20 @@ public class ChangePathsForm : Form
 
         // ---- Trecho ----
         var lblFrom = MakeLabel(Strings.T("Cp.LblFrom"), 12, 584);
-        _txtFrom = MakeTextBox(112, 582, 280);
-        var lblArrow = MakeLabel("->", 400, 584);
-        _txtTo = MakeTextBox(428, 582, 280);
+        _txtFrom = MakeTextBox(112, 582, 230);
+        var lblArrow = MakeLabel("->", 350, 584);
+        _txtTo = MakeTextBox(378, 582, 230);
+
+        _chkRegex = new CheckBox
+        {
+            Text      = "regex",
+            Location  = new Point(618, 584),
+            AutoSize  = true,
+            ForeColor = TEXT,
+            BackColor = BG,
+            Font      = new Font("Segoe UI", 8.5f),
+            Anchor    = AnchorStyles.Left | AnchorStyles.Bottom
+        };
 
         var btnApplyPart = MakeButton(Strings.T("Cp.BtnApplyPart"), 720, 581, 130);
         btnApplyPart.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
@@ -220,7 +243,7 @@ public class ChangePathsForm : Form
             lblInfo,
             lblFiles, _filesList, btnAll, btnNone, lblFilesHint,
             _lblPaths, _grid,
-            lblFrom, _txtFrom, lblArrow, _txtTo, btnApplyPart,
+            lblFrom, _txtFrom, lblArrow, _txtTo, _chkRegex, btnApplyPart,
             lblHint, _lblStatus,
             btnImport, btnExport, btnOk, btnCancel
         });
@@ -327,8 +350,15 @@ public class ChangePathsForm : Form
     // -------------------------------------------------------------------------
     private void BtnApplyPart_Click(object? sender, EventArgs e)
     {
-        string from = _txtFrom.Text.Trim().TrimStart('\\');
-        string to   = _txtTo.Text.Trim().TrimStart('\\');
+        bool isRegex = _chkRegex.Checked;
+        string from = _txtFrom.Text.Trim();
+        string to   = _txtTo.Text.Trim();
+
+        if (!isRegex)
+        {
+            from = from.TrimStart('\\');
+            to   = to.TrimStart('\\');
+        }
 
         if (from.Length == 0)
         {
@@ -336,23 +366,24 @@ public class ChangePathsForm : Form
             return;
         }
 
-        int affected = ApplyPrefixRule(from, to);
-        _prefixRules.Add((from, to));
+        var rule = new RepathRules.Rule(from, to, isRegex);
+        int affected = ApplyPrefixRule(rule);
+        _prefixRules.Add(rule);
 
         FlashStatus(Strings.T("Cp.MsgSegmentApplied", affected));
     }
 
-    private int ApplyPrefixRule(string from, string to)
+    private int ApplyPrefixRule(RepathRules.Rule rule)
     {
         int affected = 0;
         foreach (DataGridViewRow row in _grid.Rows)
         {
-            string atual = (string?)row.Cells[0].Value ?? string.Empty;
+            string atual   = (string?)row.Cells[0].Value ?? string.Empty;
             string current = (string?)row.Cells[1].Value ?? string.Empty;
 
-            if (current.StartsWith(from, StringComparison.OrdinalIgnoreCase))
+            if (RepathRules.TryApply(rule, current, out string updated)
+                && !string.Equals(updated, current, StringComparison.Ordinal))
             {
-                string updated = to + current[from.Length..];
                 row.Cells[1].Value = updated;
                 _edits[atual] = updated; // CellValueChanged tambem dispara, mas garantimos aqui
                 affected++;
@@ -375,10 +406,10 @@ public class ChangePathsForm : Form
         {
             var rules = RepathRules.Load(dlg.FileName);
             int total = 0;
-            foreach (var (from, to) in rules)
+            foreach (RepathRules.Rule rule in rules)
             {
-                total += ApplyPrefixRule(from, to);
-                _prefixRules.Add((from, to));
+                total += ApplyPrefixRule(rule);
+                _prefixRules.Add(rule);
             }
             FlashStatus(Strings.T("Cp.MsgImported", rules.Count, total));
         }

@@ -8,7 +8,7 @@
     <AssemblyName>P3DDebin</AssemblyName>
     <RootNamespace>P3DDebin</RootNamespace>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Company>P3DDebin</Company>
     <Product>P3D Debinarizer</Product>
     <Description>Debinariza, extrai RVMATs / model.cfg e troca caminhos de modelos .p3d do Arma 3.</Description>
