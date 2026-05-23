@@ -22,6 +22,7 @@ Built on .NET 8 + WinForms, distributed as a single self-contained `.exe`.
 - [Batch mode](#batch-mode)
 - [Drag-and-drop](#drag-and-drop)
 - [Language](#language)
+- [Command-line mode (headless / CI)](#command-line-mode-headless--ci)
 - [Build from source](#build-from-source)
 - [Troubleshooting](#troubleshooting)
 - [Limitations](#limitations)
@@ -169,6 +170,57 @@ Switch the UI language at runtime using the combo in the header. Supported:
 - 🇪🇸 Español
 
 All labels, dialogs and log messages are translated.
+
+---
+
+## Command-line mode (headless / CI)
+
+Pass any argument and the same exe runs as a CLI instead of opening the GUI. Output goes to the parent console (cmd / PowerShell).
+
+```
+P3DDebin.exe <command> <input> [options]
+
+Commands:
+  debin       <input> [-o <dir>]              Debinarize ODOL -> MLOD (_debin.p3d)
+  rvmat       <input> [-o <dir>]              Extract embedded RVMATs
+  cfg         <input> [-o <dir>]              Reconstruct model.cfg (with Animations)
+  repath      <input> --rule from=to [...]    Replace internal paths (_repath.p3d)
+              [-o <dir>]
+  list-paths  <input>                         Print every internal path referenced
+
+  --help / -h        Help
+  --version / -v     Version
+```
+
+`<input>` is a file or folder (folders are recursed). `-o` defaults to the input's own folder.
+Exit codes: `0` ok, `1` some file(s) failed, `2` usage error.
+
+### Examples
+
+Batch debinarize an entire `Addons` folder:
+```
+P3DDebin.exe debin "C:\mod\Addons"
+```
+
+Extract model.cfg from one model into a specific folder:
+```
+P3DDebin.exe cfg "C:\mod\hilux.p3d" -o "C:\mod\cfgs"
+```
+
+Rebrand a mod by repathing every model:
+```
+P3DDebin.exe repath "C:\mod\Addons" --rule "oldmod\=newmod\" -o "C:\out"
+```
+
+Inspect what paths a model references (no changes written):
+```
+P3DDebin.exe list-paths "C:\mod\hilux.p3d"
+```
+
+Chain multiple repath rules:
+```
+P3DDebin.exe repath "model.p3d" --rule "body.paa=bodyV2.paa" --rule "z\old=z\new"
+```
 
 ---
 
