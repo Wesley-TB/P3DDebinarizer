@@ -195,6 +195,34 @@ Commands:
 `<input>` is a file or folder (folders are recursed). `-o` defaults to the input's own folder.
 Exit codes: `0` ok, `1` some file(s) failed, `2` usage error.
 
+### Running the exe from a shell
+
+**CMD** runs it directly:
+```cmd
+P3DDebin.exe --help
+```
+
+**PowerShell** refuses to run executables from the current directory unless you prefix `.\`:
+```powershell
+.\P3DDebin.exe --help
+```
+
+Or pass the full path from anywhere:
+```powershell
+C:\path\to\P3DDebin.exe --help
+```
+
+To make `P3DDebin.exe` work as a global command in any shell, add its folder to your `PATH`:
+
+1. `Win+R` → `sysdm.cpl` → **Advanced** tab → **Environment Variables**
+2. Edit `Path` (User or System) → **New** → paste the folder containing `P3DDebin.exe`
+3. **Open a new shell** (existing windows keep the old PATH)
+
+To reload PATH in the current PowerShell session without reopening:
+```powershell
+$env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")
+```
+
 ### Examples
 
 Batch debinarize an entire `Addons` folder:
